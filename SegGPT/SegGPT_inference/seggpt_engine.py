@@ -53,21 +53,21 @@ def run_one_image(img, tgt, model, device):
     return output
 
 
-def inference_image(model, device, img_path, img2_paths, tgt2_paths, out_path):
+def inference_image(model, device, image, img2_list, tgt2_list):
     res, hres = 448, 448
 
-    image = Image.open(img_path).convert("RGB")
+    image = image.convert('RGB')
     input_image = np.array(image)
     size = image.size
     image = np.array(image.resize((res, hres))) / 255.
 
     image_batch, target_batch = [], []
-    for img2_path, tgt2_path in zip(img2_paths, tgt2_paths):
-        img2 = Image.open(img2_path).convert("RGB")
+    for img2, tgt2 in zip(img2_list, tgt2_list):
+        img2 = img2.convert('RGB')
         img2 = img2.resize((res, hres))
         img2 = np.array(img2) / 255.
 
-        tgt2 = Image.open(tgt2_path).convert("RGB")
+        tgt2 = tgt2.convert('RGB')
         tgt2 = tgt2.resize((res, hres), Image.NEAREST)
         tgt2 = np.array(tgt2) / 255.
 
@@ -80,7 +80,7 @@ def inference_image(model, device, img_path, img2_paths, tgt2_paths, out_path):
         img = img - imagenet_mean
         img = img / imagenet_std
 
-        assert tgt.shape == (2*res, res, 3), f'{img.shape}'
+        assert tgt.shape == (2*res, res, 3), f'{tgt.shape}'
         # normalize by ImageNet mean and std
         tgt = tgt - imagenet_mean
         tgt = tgt / imagenet_std
@@ -99,8 +99,9 @@ def inference_image(model, device, img_path, img2_paths, tgt2_paths, out_path):
         size=[size[1], size[0]], 
         mode='nearest',
     ).permute(0, 2, 3, 1)[0].numpy()
+    mask = Image.fromarray(output.astype(np.uint8))
     output = Image.fromarray((input_image * (0.6 * output / 255 + 0.4)).astype(np.uint8))
-    output.save(out_path)
+    return output, mask
 
 
 def inference_video(model, device, vid_path, num_frames, img2_paths, tgt2_paths, out_path):
